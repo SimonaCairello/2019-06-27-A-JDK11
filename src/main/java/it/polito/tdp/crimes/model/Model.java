@@ -4,9 +4,7 @@ import java.util.ArrayList;
 import java.util.List;
 
 import org.jgrapht.Graph;
-import org.jgrapht.GraphPath;
 import org.jgrapht.Graphs;
-import org.jgrapht.alg.shortestpath.DijkstraShortestPath;
 import org.jgrapht.graph.DefaultWeightedEdge;
 import org.jgrapht.graph.SimpleWeightedGraph;
 
@@ -16,9 +14,13 @@ public class Model {
 	
 	private EventsDao dao;
 	private Graph<String, DefaultWeightedEdge> graph;
+	private List<String> bestCamminoMin;
+	private Integer pesoMin;
 
 	public Model() {
 		this.dao = new EventsDao();
+		this.bestCamminoMin = new ArrayList<>();
+		this.pesoMin = 0;
 	}
 	
 	public List<String> getOffenseCategory() {
@@ -81,35 +83,46 @@ public class Model {
 	}
 	
 	public List<String> getCamminoPesoMin(Adiacenza adiacenza) {
-		DijkstraShortestPath<String, DefaultWeightedEdge> dij = new DijkstraShortestPath<>(this.graph);
-		GraphPath<String, DefaultWeightedEdge> cammino = dij.getPath(adiacenza.getType1(), adiacenza.getType2());
-		return cammino.getVertexList();
+		List<String> parziale = new ArrayList<>();
+		parziale.add(adiacenza.getType1());
+		this.trovaPercorso(parziale, adiacenza.getType2(), 0);
+		return this.bestCamminoMin;
 	}
 	
-	/*public void trovaPercorso(List<String> parziale, String finale, Integer peso) {
+	public void trovaPercorso(List<String> parziale, String finale, Integer peso) {
 		if(parziale.size()==this.graph.vertexSet().size()) {
-			this.camminoMin = parziale;
+			if(parziale.get(parziale.size()-1).equals(finale)) {
+				if(this.bestCamminoMin.size()==0) {
+					this.pesoMin = peso;
+					this.bestCamminoMin.addAll(parziale);
+					return;
+				}
+			
+				if(this.pesoMin>peso) {
+					this.pesoMin = peso;
+					this.bestCamminoMin = new ArrayList<>(parziale);
+					return;
+				}
+				return;
+			}
 			return;
 		}
 		
 		String ultimoAggiunto = parziale.get(parziale.size()-1);
-		boolean flag = false;
-		VerticePeso vicino = new VerticePeso(ultimoAggiunto, 0);
+		Integer p = 0;
 		
-		while(parziale.contains(vicino.getVertice())) {
-			for(String s : Graphs.neighborListOf(this.graph, ultimoAggiunto)) {
-				if(flag==false) {
-					vicino = new VerticePeso(s, (int) this.graph.getEdgeWeight(this.graph.getEdge(ultimoAggiunto, s)));
-					flag = true;
-					}
+		for(String s : Graphs.neighborListOf(this.graph, ultimoAggiunto)) {
+			if(!parziale.contains(s)) {
+				parziale.add(s);
+				p = (int) this.graph.getEdgeWeight(this.graph.getEdge(ultimoAggiunto, s));
+				peso += p;
 			
-				if(this.graph.getEdgeWeight(this.graph.getEdge(ultimoAggiunto, s))<vicino.getPeso()) {
-					vicino = new VerticePeso(s, (int) this.graph.getEdgeWeight(this.graph.getEdge(ultimoAggiunto, s)));
-				}
+				trovaPercorso(parziale, finale, peso);
+			
+				// backtracking
+				parziale.remove(parziale.size()-1);
+				peso -= p;
 			}
 		}
-		
-		parziale.add(vicino.getVertice());
-		peso += vicino.getPeso();
-	}*/
+	}
 }
